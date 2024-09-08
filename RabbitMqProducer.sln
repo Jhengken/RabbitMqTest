@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitMqCustomer", "RabbitM
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitMqCustomer2", "RabbitMqCustomer2\RabbitMqCustomer2.csproj", "{5E3F79AE-2A9E-4525-A4A3-1316E85089D9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lib", "Lib\Lib.csproj", "{C8044A47-1F7F-40C5-BD59-B4B1856ACBFE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{5E3F79AE-2A9E-4525-A4A3-1316E85089D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5E3F79AE-2A9E-4525-A4A3-1316E85089D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5E3F79AE-2A9E-4525-A4A3-1316E85089D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8044A47-1F7F-40C5-BD59-B4B1856ACBFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8044A47-1F7F-40C5-BD59-B4B1856ACBFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8044A47-1F7F-40C5-BD59-B4B1856ACBFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8044A47-1F7F-40C5-BD59-B4B1856ACBFE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
