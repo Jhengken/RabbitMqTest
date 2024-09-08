@@ -1,54 +1,23 @@
-﻿using System.Text;
-using RabbitMQ.Client;
+﻿using Lib;
 
 Console.WriteLine("Hello, World!");
 
-var channel =await new RabbitMqService().Create();
-// var factory = new ConnectionFactory
-// {
-//     UserName = "guest",
-//     Password = "guest",
-//     HostName = "localhost"
-// };
-//
-// using var connection = await factory.CreateConnectionAsync();
-// using var channel = await connection.CreateChannelAsync();
+const string exchangeName = "exchangeFanout";
+const string queueName1 = "DirectQueue1";
+const string queueName2 = "DirectQueue2";
+const string routeKey = "testHandle";
 
-var queueName1 = "DirectQueue1";
-var queueName2 = "DirectQueue2";
-var routeKey = "testHandle";
-var exchangeName = "exchangeFanout";
-await channel.ExchangeDeclareAsync(exchangeName, ExchangeType.Fanout, false, false);
-
-await channel.QueueDeclareAsync(queueName1, false, false, false);
-await channel.QueueBindAsync(queueName1, exchangeName, routeKey);
-
-await channel.QueueDeclareAsync(queueName2, false, false, false);
-await channel.QueueBindAsync(queueName2, exchangeName, routeKey); 
+var rabbitMq =  new RabbitMqFactory(exchangeName);
+await rabbitMq.InitAsync();
+await rabbitMq.DeclareExchangeAsync();
+await rabbitMq.DeclareQueueAsync(queueName1, routeKey);
+await rabbitMq.DeclareQueueAsync(queueName2, routeKey);
 
 Console.WriteLine("\nRabbitMQ連接成功,如需離開請按下Escape鍵");
 
-var input = string.Empty;
 do
 {
-    input = Console.ReadLine();
-    var sendBytes = Encoding.UTF8.GetBytes(input);
-    //發布訊息到RabbitMQ Server
-    await channel.BasicPublishAsync(exchangeName, routeKey, sendBytes);
-
+    var message = Console.ReadLine();
+    await rabbitMq.PublishAsync(message,routeKey);
 } while (Console.ReadKey().Key != ConsoleKey.Escape);
 
-public  class RabbitMqService
-{
-    public  async Task<IChannel> Create()
-    {
-        var factory = new ConnectionFactory
-        {
-            UserName = "guest",
-            Password = "guest",
-            HostName = "localhost"
-        };
-        var connection = await factory.CreateConnectionAsync();
-        return await connection.CreateChannelAsync();
-    }
-}
