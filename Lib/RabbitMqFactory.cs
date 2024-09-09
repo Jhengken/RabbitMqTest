@@ -59,6 +59,7 @@ public class RabbitMqFactory(string exchangeName)
     {
         if (ConnectionIsOpen)
         {
+            // _connection!.CloseAsync(); // 不會阻塞線程，需等待Rabbit伺服器確認，會比較慢釋放
             _connection!.Dispose();
         }
     }
