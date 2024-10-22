@@ -18,7 +18,73 @@ public class RabbitMqFactory(string exchangeName)
 
     private bool ConnectionIsOpen => _connection is not null && _connection.IsOpen;
 
-    public async Task Consume(string queueName)
+    public async Task RegisterConsume(ExchangeTypes exchangeType, string queueName, string routeKey, Dictionary<string, object?>? arguments = null)
+    {
+        await InitAsync();
+        await DeclareExchangeAsync(exchangeType.ToString().ToLower());
+        await DeclareQueueAsync(queueName, routeKey, arguments);
+        await Consume(queueName, arguments);
+    }
+
+    private Task DeclareExchangeAsync(string exchangeType)
+    {
+        return _channel!.ExchangeDeclareAsync(exchangeName, exchangeType, false, false);
+    }
+
+    private async Task DeclareQueueAsync(string queueName, string routeKey, Dictionary<string, object?>? arguments)
+    {
+        await _channel!.QueueDeclareAsync(queueName, false, false, false);
+        await _channel.QueueBindAsync(queueName, exchangeName, routeKey, arguments);
+    }
+
+    public async Task InitAsync()
+    {
+        if (!ConnectionIsOpen)
+        {
+            await Connection();
+            _channel = await _connection!.CreateChannelAsync();
+        }
+    }
+
+    public async Task PublishAsync(string? msg, string routeKey, Dictionary<string, object?>? dictionary)
+    {
+        if (string.IsNullOrWhiteSpace(msg))
+        {
+            throw new ArgumentNullException(msg);
+        }
+
+        var sendBytes = Encoding.UTF8.GetBytes(msg);
+        await _channel!.BasicPublishAsync(exchangeName, routeKey, new BasicProperties() { Headers = dictionary }, sendBytes);
+    }
+
+    public void Dispose()
+    {
+        if (ConnectionIsOpen)
+        {
+            // _connection!.CloseAsync(); // 不會阻塞線程，需等待Rabbit伺服器確認，會比較慢釋放
+            _connection!.Dispose();
+        }
+    }
+
+    private async Task Connection()
+    {
+        try
+        {
+            _connection = await _factory.CreateConnectionAsync();
+            Console.WriteLine("RabbitMq connection success");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"RabbitMq connection fail, Exception Message:{e.Message}");
+        }
+
+        if (ConnectionIsOpen)
+        {
+            _connection!.ConnectionShutdown += async (_, _) => await OnConnectionShutdown();
+        }
+    }
+
+    private async Task Consume(string queueName, Dictionary<string, object?>? arguments)
     {
         if (_channel == null)
         {
@@ -41,62 +107,8 @@ public class RabbitMqFactory(string exchangeName)
             await _channel.BasicAckAsync(ea.DeliveryTag, false);
         };
 
-        await _channel.BasicConsumeAsync(queueName, false, consumer);
-    }
-
-    public Task DeclareExchangeAsync()
-    {
-        return _channel!.ExchangeDeclareAsync(exchangeName, ExchangeType.Fanout, false, false);
-    }
-
-    public async Task DeclareQueueAsync(string queueName, string routeKey)
-    {
-        await _channel!.QueueDeclareAsync(queueName, false, false, false);
-        await _channel.QueueBindAsync(queueName, exchangeName, routeKey);
-    }
-
-    public void Dispose()
-    {
-        if (ConnectionIsOpen)
-        {
-            // _connection!.CloseAsync(); // 不會阻塞線程，需等待Rabbit伺服器確認，會比較慢釋放
-            _connection!.Dispose();
-        }
-    }
-
-    public async Task InitAsync()
-    {
-        await Connection();
-        _channel = await _connection!.CreateChannelAsync();
-    }
-
-    public async Task PublishAsync(string? msg, string routeKey)
-    {
-        if (string.IsNullOrWhiteSpace(msg))
-        {
-            throw new ArgumentNullException(msg);
-        }
-
-        var sendBytes = Encoding.UTF8.GetBytes(msg);
-        await _channel!.BasicPublishAsync(exchangeName, routeKey, sendBytes);
-    }
-
-    private async Task Connection()
-    {
-        try
-        {
-            _connection = await _factory.CreateConnectionAsync();
-            Console.WriteLine("RabbitMq connection success");
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"RabbitMq connection fail, Exception Message:{e.Message}");
-        }
-
-        if (ConnectionIsOpen)
-        {
-            _connection!.ConnectionShutdown += async (_, _) => await OnConnectionShutdown();
-        }
+        //await _channel.BasicConsumeAsync(queueName, false, consumer);
+        await _channel.BasicConsumeAsync(consumer, queueName, autoAck: false, arguments: arguments);
     }
 
     private async Task OnConnectionShutdown()
@@ -104,4 +116,22 @@ public class RabbitMqFactory(string exchangeName)
         Console.WriteLine("A RabbitMQ connection is on shutdown. Trying to re-connect...");
         await Connection();
     }
+
+    public async Task RegisterProducer(ExchangeTypes exchangeType,
+        string queueName,
+        string routeKey,
+        Dictionary<string, object?>? bind = null)
+    {
+        await InitAsync();
+        await DeclareExchangeAsync(exchangeType.ToString().ToLower());
+        await DeclareQueueAsync(queueName, routeKey, bind);
+    }
+}
+
+public enum ExchangeTypes
+{
+    FanOut = 1,
+    Direct = 2,
+    Topic = 3,
+    Headers = 4
 }
